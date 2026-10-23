@@ -16,7 +16,11 @@ from pypdf import PdfReader
 
 # --- الإعدادات الأساسية ---
 TELEGRAM_BOT_TOKEN = "8619621181:AAHBXbxDvHcIcCzobF8av2UUTdFspUCa9Lk"
-GROQ_API_KEY = "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"
+import os
+
+# اجعل الكود يسحب المفتاح من بيئة السيرفر بأمان
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+
 
 # إعداد السجلات
 logging.basicConfig(
