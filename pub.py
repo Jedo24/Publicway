@@ -38,7 +38,8 @@ def call_groq_ai(prompt_text: str) -> str:
         "Content-Type": "application/json"
     }
     payload = {
-model="llama-3.3-70b-versatile"
+model="llama-3.1-8b-instant"
+
         "messages": [{"role": "user", "content": prompt_text}],
         "temperature": 0.7
     }
