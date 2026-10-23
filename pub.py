@@ -16,11 +16,9 @@ from pypdf import PdfReader
 
 # --- الإعدادات الأساسية ---
 TELEGRAM_BOT_TOKEN = "8619621181:AAHBXbxDvHcIcCzobF8av2UUTdFspUCa9Lk"
-import os
 
-# اجعل الكود يسحب المفتاح من بيئة السيرفر بأمان
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-
+# سحب مفتاح OpenRouter بأمان من متغيرات البيئة
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 # إعداد السجلات
 logging.basicConfig(
@@ -30,21 +28,25 @@ logger = logging.getLogger(__name__)
 
 user_states = {}
 
-# --- دالة الاتصال المباشر بـ Groq AI ---
-def call_groq_ai(prompt_text: str) -> str:
-    url = "https://api.groq.com/openai/v1/chat/completions"
+# --- دالة الاتصال المباشر بـ OpenRouter AI ---
+def call_openrouter_ai(prompt_text: str) -> str:
+    if not OPENROUTER_API_KEY:
+        return "عذراً، لم يتم العثور على OPENROUTER_API_KEY في متغيرات البيئة."
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY.strip()}",
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {OPENROUTER_API_KEY.strip()}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://telegram.org",
+        "X-Title": "Publicway Bot"
     }
     payload = {
-model="llama-3.1-8b-instant"
-
+        "model": "meta-llama/llama-3.1-8b-instruct:free",
         "messages": [{"role": "user", "content": prompt_text}],
         "temperature": 0.7
     }
     
-    # تجاوز فحص الشهادات لتجنب مشاكل SSL على بيئة a-Shell
+    # تجاوز فحص الشهادات لتجنب مشاكل SSL
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -60,7 +62,7 @@ model="llama-3.1-8b-instant"
             res_data = json.loads(response.read().decode('utf-8'))
             return res_data['choices'][0]['message']['content']
     except Exception as e:
-        logger.error(f"Groq API Error: {e}")
+        logger.error(f"OpenRouter API Error: {e}")
         return f"عذراً، حدث خطأ في الذكاء الاصطناعي:\n`{e}`"
 
 def analyze_cv_ai(cv_text: str) -> str:
@@ -72,7 +74,7 @@ def analyze_cv_ai(cv_text: str) -> str:
         "4. صياغة موجزة لرسالة تقديم (Cover Letter) احترافية.\n\n"
         f"السيرة الذاتية:\n{cv_text}"
     )
-    return call_groq_ai(prompt)
+    return call_openrouter_ai(prompt)
 
 def summarize_text_ai(text: str) -> str:
     prompt = (
@@ -80,14 +82,14 @@ def summarize_text_ai(text: str) -> str:
         "مع إبراز أهم الأفكار والدروس المستفادة:\n\n"
         f"{text}"
     )
-    return call_groq_ai(prompt)
+    return call_openrouter_ai(prompt)
 
 def explain_concept_ai(concept: str) -> str:
     prompt = (
         "اشرح المفهوم أو السؤال التالي بطريقة مبسطة، واضحة، مدعومة بأمثلة عملية:\n\n"
         f"{concept}"
     )
-    return call_groq_ai(prompt)
+    return call_openrouter_ai(prompt)
 
 
 # --- معالجات تيليجرام ---
@@ -220,5 +222,5 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     
-    print("🚀 البوت يعمل الآن بكامل الطاقة!")
+    print("🚀 البوت يعمل الآن بكامل الطاقة عبر OpenRouter!")
     app.run_polling()
