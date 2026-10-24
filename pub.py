@@ -1,5 +1,5 @@
 cat << 'EOF' > pub.py
-import time, json, urllib.request, ssl, urllib.error
+import time, json, urllib.request, ssl, urllib.error, os
 
 TOKEN = '8619621181:AAHBXbxDvHcIcCzobF8av2UUTdFspUCa9Lk'
 KEY = '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'
@@ -8,15 +8,15 @@ ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
-# تعليمات الذكاء الاصطناعي لتقديم الخدمات العامة
+# تعليمات الذكاء الاصطناعي لتحليل النصوص وتغيير الصيغ والخدمات العامة
 SYSTEM_PROMPT = (
-    "أنت مساعد ذكي احترافي مخصص لتقديم 'الخدمات الرقمية العامة والذكية'. "
-    "تتضمن مهامك الرئيسية: "
-    "1. صياغة الخطابات والرسائل والترجمة الدقيقة بين اللغات. "
-    "2. حل المشكلات البرمجية (مثل بايثون، لينكس، وغيرها) وكتابة وتصحيح الأكواد. "
-    "3. تلخيص النصوص والكتب والمقالات وتنسيق النقاط. "
-    "4. تقديم أفكار تسويقية ومحتوى إبداعي وتنسيق الجداول. "
-    "اجعل ردودك دائماً مرتبة، دقيقة، ومباشرة مع استخدام التنسيق الجيد والرموز التعبيرية المناسبة."
+    "أنت مساعد ذكي واحترافي لتقديم الخدمات الرقمية المتقدمة. "
+    "مهمتك تشمل: "
+    "1. تحليل النصوص، استخراج الأفكار الرئيسية، والتلخيص الدقيق. "
+    "2. تغيير صيغة النصوص (إعادة صياغة احترافية، تحويل الأسلوب إلى رسمي، أكاديمي، أو إبداعي). "
+    "3. الترجمة الفورية وتصحيح الأخطاء اللغوية والنحوية. "
+    "4. المساعدة في الأكواد البرمجية والتخطيط التقني. "
+    "اجعل ردودك دائماً مرتبة وواضحة ومنسقة."
 )
 
 try:
@@ -39,7 +39,37 @@ def get_free_model():
     return 'google/gemini-flash-1.5-8b:free'
 
 MODEL = get_free_model()
-print(f'🚀 بوت الخدمات العامة يعمل الآن بنجاح بالنموذج: {MODEL}')
+print(f'🚀 بوت الخدمات العامة وتحميل الملفات يعمل الآن بالنموذج: {MODEL}')
+
+# دالة إرسال الملفات عبر تيليجرام
+def send_telegram_document(chat_id, file_path, caption=""):
+    try:
+        boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
+        data = []
+        data.append(f'--{boundary}\r\n'.encode())
+        data.append(f'Content-Disposition: form-data; name="chat_id"\r\n\r\n{chat_id}\r\n'.encode())
+        if caption:
+            data.append(f'--{boundary}\r\n'.encode())
+            data.append(f'Content-Disposition: form-data; name="caption"\r\n\r\n{caption}\r\n'.encode())
+        
+        filename = os.path.basename(file_path)
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
+        
+        data.append(f'--{boundary}\r\n'.encode())
+        data.append(f'Content-Disposition: form-data; name="document"; filename="{filename}"\r\n'.encode())
+        data.append(b'Content-Type: application/octet-stream\r\n\r\n')
+        data.append(file_content)
+        data.append(f'\r\n--{boundary}--\r\n'.encode())
+        
+        body = b''.join(data)
+        headers = {'Content-Type': f'multipart/form-data; boundary={boundary}'}
+        req = urllib.request.Request(f'https://api.telegram.org/bot{TOKEN}/sendDocument', data=body, headers=headers, method='POST')
+        with urllib.request.urlopen(req, context=ctx) as r:
+            return json.loads(r.read().decode())
+    except Exception as e:
+        print(f'❌ خطأ في إرسال الملف: {e}')
+        return None
 
 offset = 0
 while True:
@@ -53,30 +83,77 @@ while True:
                 if msg and 'text' in msg:
                     chat_id = msg['chat']['id']
                     text = msg['text'].strip()
-                    print(f'📩 طلب من مستخدم: {text}')
+                    print(f'📩 طلب وارد: {text}')
 
-                    # أمر البداية والتريحب
+                    # أمر البداية
                     if text.startswith('/start'):
                         reply = (
-                            "👋 أهلاً بك في بوت الخدمات الرقمية الذكية!\n\n"
-                            "أنا مساعدك الذكي لتنفيذ جميع طلباتك وخدماتك الرقمية 🚀\n\n"
-                            "💡 **أمثلة لما يمكنني مساعدتك به:**\n"
-                            "▫️ صياغة الخطابات والترجمة وتعديل النصوص.\n"
-                            "▫️ كتابة وفحص الأكواد البرمجية (Python, Shell, C++...).\n"
-                            "▫️ تلخيص المقالات والتحليل وتنسيق البيانات.\n"
-                            "▫️ التخطيط، كتابة المحتوى والأفكار التسويقية.\n\n"
-                            "اكتب طلبك مباشرة في الشات وسأقوم بتنفيذه فوراً، أو أرسل /services لراية قائمة الخدمات!"
+                            "👋 أهلاً بك في بوت الخدمات الذكية الشامل!\n\n"
+                            "🛠️ **ما يمكنني فعله لأجلك:**\n"
+                            "▫️ **تحليل وتغيير الصيغة:** تحليل النصوص، إعادة صياغتها، والتلخيص.\n"
+                            "▫️ **تحميل الملفات:** أرسل الأمر `/download <الرابط>` لتحميل أي ملف من الإنترنت وإرساله لك فوراً.\n"
+                            "▫️ **الخدمات العامة والبرمجية:** الإجابة على الاستفسارات وحل الأكواد.\n\n"
+                            "فقط أرسل طلبك أو رابط التحميل لنبدأ العمل!"
                         )
-                    # قائمة الخدمات
-                    elif text.startswith('/services') or text.startswith('/help'):
-                        reply = (
-                            "🛠️ **قائمة الخدمات المتاحة:**\n\n"
-                            "1️⃣ **الخدمات الكتابية:** (ترجمة، إعادة صياغة، كتابة خطابات رسمية، تلخيص).\n"
-                            "2️⃣ **الخدمات البرمجية:** (حل أخطاء الأكواد، كتابة سكربتات، شرح مفاهيم).\n"
-                            "3️⃣ **إدارة المحتوى:** (أفكار بوستات، إعلانات، خطط عمل).\n"
-                            "4️⃣ **الاستشارات العامة:** الإجابة على أي سؤال تقني أو عام.\n\n"
-                            "👉 فقط اكتب ما تحتاجه بالتفصيل وسيتم الرد عليك فورا!"
+                        urllib.request.urlopen(
+                            urllib.request.Request(
+                                f'https://api.telegram.org/bot{TOKEN}/sendMessage',
+                                data=json.dumps({'chat_id': chat_id, 'text': reply}).encode(),
+                                headers={'Content-Type': 'application/json'},
+                                method='POST'
+                            ),
+                            context=ctx
                         )
+
+                    # خدمة تحميل الملفات من الإنترنت
+                    elif text.startswith('/download '):
+                        file_url = text.replace('/download', '').strip()
+                        print(f'📥 جاري تحميل الملف من الرابط: {file_url}')
+                        
+                        # إرسال رسالة انتظار للمستخدم
+                        urllib.request.urlopen(
+                            urllib.request.Request(
+                                f'https://api.telegram.org/bot{TOKEN}/sendMessage',
+                                data=json.dumps({'chat_id': chat_id, 'text': '⏳ جاري تحميل الملف من الإنترنت، ثوانٍ معدودة...'}).encode(),
+                                headers={'Content-Type': 'application/json'},
+                                method='POST'
+                            ),
+                            context=ctx
+                        )
+                        
+                        try:
+                            # تحميل الملف محلياً
+                            local_filename = file_url.split('/')[-1].split('?')[0]
+                            if not local_filename:
+                                local_filename = "downloaded_file.bin"
+                            
+                            req_file = urllib.request.Request(file_url, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(req_file, context=ctx, timeout=30) as response, open(local_filename, 'wb') as out_file:
+                                out_file.write(response.read())
+                            
+                            print(f'✅ تم تحميل الملف محلياً باسم: {local_filename}')
+                            
+                            # إرسال الملف إلى المستخدم عبر تيليجرام
+                            send_telegram_document(chat_id, local_filename, caption=f"📁 تم التحميل بنجاح من:\n{file_url}")
+                            
+                            # حذف الملف من السيرفر بعد الإرسال لتوفير المساحة
+                            if os.path.exists(local_filename):
+                                os.remove(local_filename)
+                                
+                        except Exception as dl_err:
+                            print(f'❌ خطأ في التحميل: {dl_err}')
+                            err_msg = f'⚠️ عذراً، تعذر تحميل الملف من الرابط المحدد. الخطأ: {dl_err}'
+                            urllib.request.urlopen(
+                                urllib.request.Request(
+                                    f'https://api.telegram.org/bot{TOKEN}/sendMessage',
+                                    data=json.dumps({'chat_id': chat_id, 'text': err_msg}).encode(),
+                                    headers={'Content-Type': 'application/json'},
+                                    method='POST'
+                                ),
+                                context=ctx
+                            )
+
+                    # الخدمات النصية والتحليل وتغيير الصيغة عبر الذكاء الاصطناعي
                     else:
                         print('🧠 جاري معالجة الطلب عبر الذكاء الاصطناعي...')
                         try:
@@ -95,38 +172,24 @@ while True:
                             )
                             with urllib.request.urlopen(req_ai, context=ctx) as ra:
                                 reply = json.loads(ra.read().decode())['choices'][0]['message']['content']
-                        except urllib.error.HTTPError as he:
-                            err_detail = he.read().decode()
-                            print(f'❌ تفاصيل خطأ OpenRouter: {err_detail}')
-                            reply = f'عذراً، حدث خطأ أثناء تنفيذ الطلب. يرجى المحاولة لاحقاً.'
                         except Exception as ai_err:
-                            print(f'❌ خطأ عام: {ai_err}')
-                            reply = f'عذراً، حدث خطأ غير متوقع: {ai_err}'
+                            print(f'❌ خطأ الذكاء الاصطناعي: {ai_err}')
+                            reply = f'عذراً، حدث خطأ أثناء معالجة طلبك: {ai_err}'
 
-                    # إرسال الرد إلى تيليجرام
-                    try:
-                        urllib.request.urlopen(
-                            urllib.request.Request(
-                                f'https://api.telegram.org/bot{TOKEN}/sendMessage',
-                                data=json.dumps({'chat_id': chat_id, 'text': reply, 'parse_mode': 'Markdown'}).encode(),
-                                headers={'Content-Type': 'application/json'},
-                                method='POST'
-                            ),
-                            context=ctx
-                        )
-                        print('✅ تم تنفيذ الخدمة وإرسال الرد بنجاح!')
-                    except Exception as tg_err:
-                        # في حال وجود خطأ في تنسيق الماركداون يتم الإرسال كنص عادي
-                        urllib.request.urlopen(
-                            urllib.request.Request(
-                                f'https://api.telegram.org/bot{TOKEN}/sendMessage',
-                                data=json.dumps({'chat_id': chat_id, 'text': reply}).encode(),
-                                headers={'Content-Type': 'application/json'},
-                                method='POST'
-                            ),
-                            context=ctx
-                        )
-                        print(f'✅ تم الإرسال (كنص عادي): {tg_err}')
+                        # إرسال الرد النصي
+                        try:
+                            urllib.request.urlopen(
+                                urllib.request.Request(
+                                    f'https://api.telegram.org/bot{TOKEN}/sendMessage',
+                                    data=json.dumps({'chat_id': chat_id, 'text': reply}).encode(),
+                                    headers={'Content-Type': 'application/json'},
+                                    method='POST'
+                                ),
+                                context=ctx
+                            )
+                            print('✅ تم الرد على النص بنجاح!')
+                        except Exception as tg_err:
+                            print(f'❌ خطأ إرسال الرد: {tg_err}')
 
     except Exception as e:
         print(f'❌ خطأ رئيسي: {e}')
